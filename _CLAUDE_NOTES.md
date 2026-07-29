@@ -14,13 +14,13 @@ Utolsó frissítés: **2026-07-28** (`wsdl.SchemaPropertyEnum` legacy tábla bej
 | **Írás dátuma** | 2026-07-28 |
 | **Mit írt (röviden)** | `wsdl.SchemaPropertyEnum` legacy tábla bejegyzés az "Ismert rések" közé (felhasználói visszakérdezésre) |
 | **Claude Code feldolgozta?** | ✅ 2026-07-28 (ő maga írta) |
-| **Claude Opus (claude.ai) feldolgozta?** | ⬜ még nincs jelezve |
+| **Claude Opus (claude.ai) feldolgozta?** | ✅ 2026-07-28 (első sikeres GitHub-fetch alapján) |
 
 **Napló** (legutóbbi írások, legújabb felül — kb. 10 sort érdemes megtartani, a régebbieket törölni):
 
 | Dátum | Ki írt | Mit (röviden) | Claude Code feldolgozta | Claude Opus feldolgozta |
 |---|---|---|---|---|
-| 2026-07-28 | Claude Code | `SchemaPropertyEnum` legacy tábla bejegyzés | ✅ (írta) | ⬜ |
+| 2026-07-28 | Claude Code | `SchemaPropertyEnum` legacy tábla bejegyzés | ✅ (írta) | ✅ 2026-07-28 |
 | 2026-07-24 | Claude Code | WSDL W5 lezárva — projekt funkcionálisan kész | ✅ (írta) | ⬜ |
 | 2026-07-24 | Claude Code | WSDL W2 lezárva, `ModuleEntitiesID` idempotencia-bug fix | ✅ (írta) | ⬜ |
 
