@@ -4,25 +4,28 @@ Ez a fájl a **közös emlékezet** a projekten dolgozó Claude sessionök köz�
 - **Claude Code** (lokális, kód-implementációhoz) — olvassa és frissíti
 - **Claude claude.ai-n** (design, guide-készítés, code review) — kap egy másolatot chatben
 
-Utolsó frissítés: **2026-07-28** (`wsdl.SchemaPropertyEnum` legacy tábla bejegyzés)
+Utolsó frissítés: **2026-07-30** (`wsdl.Type` fantomtábla + `XsdSchemaBlock`/`SchemaImport` dokumentálva; merge a 2026-07-28-i doksi frissítési körrel)
 
 ## 🔄 Szinkronizációs állapot (ki írt utoljára / ki dolgozta fel)
 
 | Mező | Érték |
 |---|---|
 | **Utoljára írt** | Claude Code |
-| **Írás dátuma** | 2026-07-28 |
-| **Mit írt (röviden)** | `wsdl.SchemaPropertyEnum` legacy tábla bejegyzés az "Ismert rések" közé (felhasználói visszakérdezésre) |
-| **Claude Code feldolgozta?** | ✅ 2026-07-28 (ő maga írta) |
-| **Claude Opus (claude.ai) feldolgozta?** | ✅ 2026-07-28 (első sikeres GitHub-fetch alapján) |
+| **Írás dátuma** | 2026-07-30 |
+| **Mit írt (röviden)** | `wsdl_schema_reference.md` v2.3 + `wsdl_to_model_full_spec.md` v2.1 — a `wsdl.Type` tábla soha nem élt a kódban, a valós forrás `wsdl.XsdSchemaBlock`; `wsdl.Schema` FK-lánca is javítva (`DefinitionID`/`XsdSchemaBlockID`/`NamespaceID`, nem `TypeID`/`NamespaceUri`); két teljesen dokumentálatlan tábla pótolva (`XsdSchemaBlock`, `SchemaImport`) — lásd Eltérésnapló |
+| **Claude Code feldolgozta?** | ✅ 2026-07-30 (ő maga írta) |
+| **Claude Opus (claude.ai) feldolgozta?** | ⬜ |
 
 **Napló** (legutóbbi írások, legújabb felül — kb. 10 sort érdemes megtartani, a régebbieket törölni):
 
 | Dátum | Ki írt | Mit (röviden) | Claude Code feldolgozta | Claude Opus feldolgozta |
 |---|---|---|---|---|
+| 2026-07-30 | Claude Code | `wsdl.Type`→`wsdl.XsdSchemaBlock` FK-lánc korrekció mindkét doksiban, `SchemaImport` tábla pótolva | ✅ (írta) | ⬜ |
+| 2026-07-30 | Claude Code | `wsdl_schema_reference.md` v2.2 — `SchemaPropertyEnum` legacy tábla dokumentálva (5.13 szakasz, korábban 5.11) | ✅ (írta) | ⬜ |
+| 2026-07-28 | Claude Opus | Doksi frissítési kör: swagger full spec v2.0, 7 tervezési doksi státusz-fejléc, új ITERATIONS_README | ⬜ | ✅ (írta) |
 | 2026-07-28 | Claude Code | `SchemaPropertyEnum` legacy tábla bejegyzés | ✅ (írta) | ✅ 2026-07-28 |
-| 2026-07-24 | Claude Code | WSDL W5 lezárva — projekt funkcionálisan kész | ✅ (írta) | ✅ 2026-07-28 (első sikeres GitHub-fetch alapján) |
-| 2026-07-24 | Claude Code | WSDL W2 lezárva, `ModuleEntitiesID` idempotencia-bug fix | ✅ (írta) | ✅ 2026-07-28 (első sikeres GitHub-fetch alapján) |
+| 2026-07-24 | Claude Code | WSDL W5 lezárva — projekt funkcionálisan kész | ✅ (írta) | ✅ 2026-07-28 |
+| 2026-07-24 | Claude Code | WSDL W2 lezárva, `ModuleEntitiesID` idempotencia-bug fix | ✅ (írta) | ✅ 2026-07-28 |
 
 ---
 
@@ -59,6 +62,7 @@ Néhány guide a projektet nem tükrözi 100%-ban. Az eltérések itt vannak dok
 | `wsdl.SchemaElementField` (tábla) | `wsdl.SchemaProperty` | Meglévő tábla, bővítve nem duplikálva |
 | `WsdlSchemaElement` (C# rekord) | `WsdlSchema` | InterfaceToModel-ben |
 | `WsdlSchemaElementField` (C# rekord) | `WsdlSchemaProperty` | InterfaceToModel-ben |
+| `wsdl.Type` (feltételezett XSD tároló) | **nem használatban** — fantomtábla | A valós forrás `wsdl.XsdSchemaBlock`, lásd Eltérésnapló 2026-07-30 |
 
 ### FK oszlopnevek az új XSD táblákban — ÁTNEVEZVE (2026-07-23)
 
@@ -75,17 +79,13 @@ Migrációk (mindkettő `SIT_SOLAR_STAGING`-en fut le, mert `wsdl.*` séma):
 
 Kód érintve mindkét projektben: `WsdlEntities.cs`, `WsdlMapper.cs`, `WsdlRepository.cs` (InterfaceImporter); `WsdlEntities.cs`, `WsdlReader.cs`, `WsdlFieldMapper.cs` (InterfaceToModel). Build + end-to-end teszt (CreditManagement WSDL) zöld az átnevezés után.
 
-### wsdl.Type tábla
+### wsdl.Type tábla — FANTOMTÁBLA (2026-07-30 felismerés)
 
-A séma referencia doksi (`wsdl_schema_reference.md`) egy idealizált verzióját írja le. A valós DDL eltér:
+**A `wsdl.Type` tábla soha nem lett használva a kódban** — sem az `InterfaceImporter`, sem az `InterfaceToModel` nem ír/olvas belőle. Az egyetlen említés egy migrációs kommentben van (`wsdl_extension_phase1.sql:6`): *"a guide 'wsdl.Type' táblája itt [wsdl].[Schema]"* — vagyis a guide fogalma sosem lett szó szerint implementálva, hanem a `wsdl.Schema` bővítésébe olvadt.
 
-| Doksi szerint | Valóság |
-|---|---|
-| `TargetNamespace NVARCHAR(1024) NOT NULL` | `Namespace NVARCHAR(1024) NULL` |
-| `ElementFormDefault VARCHAR(20) NULL` | nincs (még) |
-| `AttributeFormDefault VARCHAR(20) NULL` | nincs (még) |
-| `SchemaContent XML NOT NULL` | `SchemaContent XML NULL` |
-| `Documentation NVARCHAR(MAX) NULL` 🔵 | **hozzá lett adva F1-ben** |
+A tényleges XSD schema-blokk szintű metaadatot (namespace, form defaults) a **`wsdl.XsdSchemaBlock`** tábla hordozza — teljesen dokumentálatlan volt egészen 2026-07-30-ig, amikor a `wsdl_schema_reference.md` v2.3-ban 5.11 szakaszként pótoltuk.
+
+Lásd Eltérésnapló 2026-07-30 — teljes felismerés + javítás.
 
 ---
 
@@ -163,15 +163,35 @@ Eddig lefuttatva MAIN-en: `swagger_2b_field_validation.sql`, `W3_wsdl_xsd_struct
 
 ---
 
-## ⏳ Következő lépések (prioritási sorrend)
+## ⏳ Következő lépések
 
-**A projekt funkcionálisan kész** (2026-07-24, WSDL W5 lezárva — ez volt a guide szerint a projekt utolsó iterációja). Maradó feladatok a guide 5. szakasza szerint:
+**A projekt funkcionálisan kész** (2026-07-24, WSDL W5 lezárva). **Fő doksik átdolgozva** (2026-07-28 és 2026-07-30).
 
-1. **Doksik frissítése** a `_CLAUDE_NOTES.md` Eltérésnaplója alapján:
-   - `wsdl_schema_reference.md` — valós séma tükrözése (Schema/SchemaProperty nevek, SchemaID/SchemaPropertyID FK-k, wsdl.Type valós DDL, wsdl.BindingOperationHeader valós oszlopnevek)
-   - `wsdl_to_model_full_spec.md` — valós implementáció (pl. `BackendInterfaceNamespace`/`BackendInterfaceSchema` `ModuleID` FK, nem `BackendInterfaceID`, mert `model.BackendInterface`-nek nincs `ID` oszlopa)
-   - `iteration_w*.md` — vagy elavultak, vagy javítandók
-2. Ez a lista **nem tartalmaz** funkcionális kódmunkát — csak dokumentáció-karbantartás.
+### Doksi frissítés állapota
+
+- ✅ `wsdl_schema_reference.md` — **kész (2026-07-30, v2.3)**. Az eredetileg várt eltérések (Schema/SchemaProperty nevek, SchemaID/SchemaPropertyID FK-k, BindingOperationHeader oszlopnevek) már benne voltak a v2.1-ben (2026-07-24, Claude Opus által). Menet közben viszont egy **nem várt, komolyabb hiba** derült ki: a `wsdl.Type` tábla, amit a doksi "🟢 BÁZIS, valós DDL"-ként dokumentált, **nincs használatban a kódban** — se `InterfaceImporter`, se `InterfaceToModel` nem ír/olvas belőle. A valós forrás `wsdl.XsdSchemaBlock` (eddig teljesen dokumentálatlan volt), és a `wsdl.Schema` FK-lánca is más (`DefinitionID` közvetlen + opcionális `XsdSchemaBlockID`, nem `TypeID`; `NamespaceID` FK, nem inline `NamespaceUri`; `BaseTypeName`+`BaseSchemaID`, nem `BaseType`; nincs `XmlContent` mező). Lásd Eltérésnapló "2026-07-30 — `wsdl.Type` fantomtábla". Egy másik, szintén dokumentálatlan tábla (`wsdl.SchemaImport`) is pótolva lett (5.12. szakasz).
+- ✅ `wsdl_to_model_full_spec.md` — **kész (2026-07-30, v2.1)**. `BackendInterfaceNamespace`/`BackendInterfaceSchema` `ModuleID` FK-dokumentáció már eleve helyes volt (2.0-s verzió óta, Claude Opus 2026-07-28). A fenti `wsdl.Type`→`wsdl.XsdSchemaBlock` korrekció átvezetve (3.14, 3.15, 3.16 szakaszok + "Fontos név-eltérések" táblázat + "Nem viszünk át" lista).
+- ✅ `swagger_schema_reference.md` — **kész (2026-07-28, v2.1)**, Claude Opus.
+- ✅ `swagger_to_model_full_spec.md` — **kész (2026-07-28, v2.0)**, Claude Opus.
+- ✅ 7 tervezési-fázisú doksi (executive summary, confluence, open questions, gap analysis) — **kész (2026-07-28)**, "projekt lezárva" státusz-fejléc, Claude Opus.
+- ✅ `ITERATIONS_README.md` — **új, 2026-07-28**, Claude Opus. Az iteráció guide-ok archív-lezárása.
+- ⬜ `iteration_w*.md` egyenkénti frissítése — nem szükséges, az `ITERATIONS_README.md` átfogja őket.
+
+### Következő tervezett munka
+
+- **Swagger nyitott kérdések áttekintése** (2026-07-29 tervezett volt, elhalasztódott a 2026-07-30-i `wsdl.Type` fantomtábla felismerés miatt — új tervezett dátum: TBD) — a `swagger_to_model_open_questions.md` és `swagger_to_model_gap_analysis.md` felnyitása, esetleg új iterációk körvonalazása. Konkrét halasztott témák: swagger security (`SecurityScheme`, `OAuth2Flow`, `OAuth2Scope`), Swagger 2c (Response wrapper class státuszkódonként).
+
+### Új, nem blokkoló rés (2026-07-30-i felülvizsgálat közben derült ki)
+
+- **`wsdl.SchemaImport`** (`XsdSchemaBlockID` owner, `<xsd:import>`/`<xsd:include>` egy schema blokkon belül) — az `InterfaceImporter` tölti, de az `InterfaceToModel` **sosem olvassa**. Nincs kiváltó/helyettesítő struktúra sem (ellentétben a `SchemaPropertyEnum`/`SchemaElementEnum` esettel) — egyszerűen még nincs bekötve a mapping. Nem blokkoló (a CreditManagement teszt WSDL-ben ez adatvesztést nem okozott, mert a `SchemaGroupRef`/`SchemaAttributeGroupRef` flatten-elés más úton oldja fel a kereszthivatkozásokat), de ha valaha `xsd:import`/`xsd:include` metaadatra lesz szükség a `model.*` oldalon, ez a hiányzó láncszem.
+
+### Halasztott iterációk (ha valamikor üzleti igény jön)
+
+- `<xs:any>` / `<xs:anyAttribute>` — nyitott tartalom típusok
+- WSDL 2.0 — csak WSDL 1.1 támogatott
+- XSD 1.1 asserts — `<xs:assert>`
+- XSD union / list — jelenleg mint string tárolva (`FieldType` mezőben)
+- RPC style operation runtime — a `SoapStyle` mező kitöltődik, de runtime-specifikus feldolgozás nincs
 
 ### Ismert, még nem lefedett rések (nem blokkolók, csak feljegyezve)
 
@@ -269,41 +289,95 @@ Ide kerülnek a fejlesztés közben derülő eltérések a specekhez képest. Ú
 
 **Tanulság**: amikor egy guide egy **még nem létező** tábla FK-ját egy meglévő táblára tervezi, ne csak a hivatkozott tábla *létezését* ellenőrizd, hanem a **tényleges FK célt** (oszlopnevet/PK-t) is — főleg, ha a tábla (mint `model.BackendInterface`) történelmileg soha nem kapott surrogate ID-t. A legjobb módszer: keress egy már működő, hasonló szerepű child táblát (itt: `BackendInterfaceSchema`) és kövesd annak mintáját ahelyett, hogy a guide feltételezését szó szerint implementálnád.
 
+### 2026-07-30 — `wsdl.Type` fantomtábla + `XsdSchemaBlock`/`SchemaImport` dokumentálatlan táblák
+
+**Doksi állítás** (`wsdl_schema_reference.md` v2.1, 2026-07-24 Claude Opus által frissítve): a `wsdl.Type` egy 🟢 bázistábla, valós DDL-lel (`Namespace NVARCHAR(1024) NULL`, `SchemaContent XML NULL`, `Documentation NVARCHAR(MAX)`), amit F1 bővített.
+
+**Valóság**: sem az `InterfaceImporter`, sem az `InterfaceToModel` kódjában **nincs egyetlen `[wsdl].[Type]` hivatkozás sem** — sem INSERT (`WsdlRepository.cs`), sem SELECT (`WsdlReader.cs`). Az egyetlen említés egy migrációs kommentben van (`wsdl_extension_phase1.sql:6`): *"a guide 'wsdl.Type' táblája itt [wsdl].[Schema]"* — vagyis a guide fogalma sosem lett szó szerint implementálva, hanem a `wsdl.Schema` bővítésébe olvadt. A tényleges XSD schema-blokk szintű metaadatot (namespace, form defaults) a **`wsdl.XsdSchemaBlock`** tábla hordozza (`XsdSchemaBlockEntity`: `ProjectID, ID, DefinitionID, TargetNamespace, ElementFormDefault, AttributeFormDefault`) — ez egy **teljesen dokumentálatlan** tábla volt mindkét doksiban.
+
+Ezzel párhuzamosan a `wsdl.Schema` FK-lánca is eltért a doksitól:
+- `TypeID` helyett **`DefinitionID`** (közvetlen FK a Definition-re) + opcionális **`XsdSchemaBlockID`**
+- `NamespaceUri NVARCHAR NOT NULL` (inline string) helyett **`NamespaceID`** FK → `wsdl.Namespace`, az URI-t az olvasó JOIN-nal oldja fel
+- `BaseType` helyett **`BaseTypeName`** (nyers QName) + **`BaseSchemaID`** (feloldott FK, ha névtéren belüli — korábban egyáltalán nem dokumentált mező)
+- **nincs `XmlContent`** mező (a doksi "NOT NULL, audit"-ként dokumentálta, de sem az INSERT, sem a SELECT nem hivatkozik rá)
+- van egy dokumentálatlan **`ElementType`** bázis mező is, a Fázis 2-es `ElementKind`-tól függetlenül
+
+Egy további, szintén teljesen dokumentálatlan tábla is előkerült: **`wsdl.SchemaImport`** (`XsdSchemaBlockID` owner, `ImportType` `import`\|`include`) — ez NEM ugyanaz, mint az 5.1-es `wsdl.Import` (ami a top-level `wsdl:import`/`xsd:import`-ot fedi, `DefinitionID` owner-rel). Az `InterfaceToModel` ezt sem olvassa (nincs kiváltó struktúra sem, egyszerűen nincs bekötve).
+
+**Felismerés módja**: nem a guide-hoz, hanem magához a `wsdl_schema_reference.md`-hez (mint a projekt saját, korábban "valós DDL"-ként hitelesített dokumentumához) képest ellenőriztem a kódot — a `WsdlRepository.cs` bulk insert hívásait és a `WsdlReader.cs` SELECT-jeit vetettem össze a `WsdlEntities.cs`-beli entitásokkal, mert a `SchemaEntity`-ben nem volt `TypeID` mező, ami gyanút keltett.
+
+**Javítás**: `wsdl_schema_reference.md` v2.3 — 4.12 szakasz átírva (`wsdl.Type` ⚠️ nem élő), 4.13 szakasz mezői korrigálva, új 5.11 (`XsdSchemaBlock`) és 5.12 (`SchemaImport`) szakasz, diagram frissítve. `wsdl_to_model_full_spec.md` v2.1 — "Fontos név-eltérések" táblázat bővítve, 3.14/3.15/3.16 szakaszok és a "Nem viszünk át" lista korrigálva.
+
+**Tanulság**: **egy korábbi Claude-session által "valós DDL"-ként hitelesített doksi-szakasz sem garancia** — ha a doksi egy adott táblát bázisként ("🟢") jelöl, de egyetlen kódhivatkozás sem található rá, azt ugyanúgy ellenőrizni kell a kódban, mint egy guide feltételezését. A `_CLAUDE_NOTES.md` "bízz, de ellenőrizz" elve (lásd 2026-07-23-as bejegyzés) nemcsak guide-okra, hanem a saját korábbi doksi-frissítésekre is vonatkozik.
+
 ---
 
 ## 🗂️ Kapcsolódó doksik
 
-Ezeket **frissíteni kell a projekt befejezésekor**, hogy tükrözzék a valós állapotot:
+**Mind frissítve** (utolsó frissítés: 2026-07-30) — tükrözik a valós projektállapotot:
 
-- `swagger_schema_reference.md` (v2.0)
-- `wsdl_schema_reference.md` (v2.0) — **Néhány eltérés, lásd fentebb "wsdl.Type" és séma névhasználat**
-- `swagger_to_model_full_spec.md`
-- `wsdl_to_model_full_spec.md`
-- `wsdl_to_model_confluence_doc.md`
-- `wsdl_to_model_open_questions.md`
-- Iteráció guide-ok (W1-W5, swagger 1, 2b, 2c)
+### Elsődleges átadási doksik
+
+- `PROJECT_COMPLETION.md` — átfogó lezárás dokumentum (üzleti + technikai)
+- `_CLAUDE_NOTES.md` (ez a fájl) — közös emlékezet, névkonvenciók, eltérésnapló
+
+### Séma referenciák (valós DDL)
+
+- `wsdl_schema_reference.md` **(v2.3, 2026-07-30)** — 24 tábla, valós struktúra (`wsdl.Schema`, `wsdl.SchemaProperty`, `XsdSchemaBlock`, `SchemaImport`, `SchemaPropertyEnum` legacy, `BindingOperationHeader` valós oszlopnevei stb.)
+- `swagger_schema_reference.md` **(v2.1, 2026-07-28)** — 19 tábla
+
+### Mapping specek (státusz + eltérés-táblázatokkal)
+
+- `wsdl_to_model_full_spec.md` **(v2.1, 2026-07-30)** — `wsdl.Type`→`wsdl.XsdSchemaBlock` korrekcióval
+- `swagger_to_model_full_spec.md` **(v2.0, 2026-07-28)**
+
+### Tervezési-fázisú doksik (státusz-fejléccel: "projekt lezárva")
+
+- `wsdl_to_model_confluence_doc.md`, `swagger_to_model_confluence_doc.md`
+- `wsdl_to_model_executive_summary.md`, `swagger_to_model_executive_summary.md`
+- `wsdl_to_model_open_questions.md`, `swagger_to_model_open_questions.md`
+- `swagger_to_model_gap_analysis.md`
+
+### Iteráció-doksik (archív)
+
+- `ITERATIONS_README.md` — az iterációk lezárva 2026-07-24, a régebbi guide-ok referenciának maradnak
+- Új iteráció sablon: `interfacetomodel_w5_guide.md` (a legjobban polírozott, minden tanulsággal)
+
+### SQL scriptek (nulláról-építéshez)
+
+- `drop_all_wsdl_schema.sql` (v1.1), `create_all_wsdl_schema.sql` (24 tábla, `SchemaPropertyEnum`-mal együtt)
+- `drop_all_swagger_schema.sql` (v1.1), `create_all_swagger_schema.sql` (19 tábla + SchemaProperty extension)
+- `verify_schemas.sql` — a rekonstruált scripteket a valós DB-vel egybevetheted
+- **⚠️ Fontos**: a 2026-07-30-i felismerés (`XsdSchemaBlock`, `SchemaImport` táblák) alapján a `create_all_wsdl_schema.sql`-t is frissíteni kellene — jelenleg nem tartalmazza ezt a 2 táblát. Következő karbantartás alkalmával pótolandó.
 
 ---
 
 ## 💡 Konvenciók
 
 ### Kód
+
 - Backward-compatible bővítések: új mezők alapértelmezett `null`/`false` értékkel
 - Migrációk idempotensek: minden `ALTER` előtt `IF NOT EXISTS` guard
 - Dapper anonymous object minta (nem `SqlParameter` collection)
 - SQL identifier-ek szögletes zárójelben (`[schema].[Table]`)
 - SQL parancsok `const string`-be a hívás előtt
+- **A target táblák PK szerkezetét ellenőrizd DDL-lel, ne a doksitól** (2026-07-24 W5 tanulság)
+- **A doksi-szakaszok "valós DDL"-nek jelölése sem garancia** — mindig ellenőrizd kódhivatkozásokkal (2026-07-30 `wsdl.Type` fantom tanulság)
 
 ### Guide-ok (chat-ből)
+
 - Backward-kompatibilitás minden bővítésnél
 - Vezethető végre inkrementálisan (fázisokra osztva ha nagy)
 - Ellenőrzés: **kérdezz vissza ha struktúrális ütközést látsz** a projektben
+- **Explicit előfeltétel-ellenőrzés**: konkrét SQL DDL check-ek (nem csak `grep`)
+- **Forrás + fogyasztó oldal külön ellenőrzés**: a forrás oldali (Importer) és fogyasztó oldali (ToModel) beolvasás gyakran külön-külön hiányos
 
 ---
 
 ## 🔄 Frissítés protokoll
 
 **Amikor egy Claude session módosít egy releváns dolgot (kód, séma, döntés)**:
+
 1. Frissítsd ezt a fájlt is
 2. Ha eltérés van a spec-hez képest → új bejegyzés a "Eltérésnapló"-ba
 3. Ha új iteráció befejeződik → jelöld be az "Implementálva" szakaszban
@@ -316,8 +390,9 @@ Ezeket **frissíteni kell a projekt befejezésekor**, hogy tükrözzék a valós
    - adj hozzá egy sort a "Napló" táblához is (a legrégebbi sorokat törölheted, ha ~10 fölé nőne)
 
 **Amikor egy Claude session elolvassa ezt a fájlt (session/beszélgetés elején)**:
+
 - Nézd meg a "Szinkronizációs állapot" táblát
 - Ha a **másik** fél írt utoljára és a **te** "feldolgozta?" meződ ⬜ → most olvastad el, tehát állítsd ✅-ra (mai dátummal)
 - Ha te magad írtál utoljára, nincs teendő
 
-**Új Claude claude.ai chat elején**: töltsd fel ezt a fájlt → azonnal képben leszek. (Utána jelöld magad feldolgozottnak a fenti szabály szerint.)
+**Új Claude claude.ai chat elején**: elérhető a GitHub raw URL-en: `https://raw.githubusercontent.com/sandorjambor/InterfaceIntegration-Notes/refs/heads/main/_CLAUDE_NOTES.md` — közvetlenül fetch-elhető. (Utána jelöld magad feldolgozottnak a fenti szabály szerint.)
